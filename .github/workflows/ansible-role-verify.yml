@@ -73,4 +73,6 @@ jobs:
           fi
 
       - name: Run Molecule tests
-        run: molecule test --all
+        run: |
+          source ~/.bashrc
+          molecule test --all
