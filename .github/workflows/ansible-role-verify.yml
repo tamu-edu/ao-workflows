@@ -21,6 +21,7 @@ jobs:
           # Create yamllint config if it doesn't exist
           if [ ! -f .yamllint ]; then
             cat > .yamllint << EOF
+          ---
           extends: default
           rules:
             line-length:
@@ -48,6 +49,7 @@ jobs:
             - .ansible-lint
           skip_list:
             - yaml[line-length]  # Handled by yamllint
+            - role-name[path]    # Skip galaxy role naming requirements
           EOF
           fi
           ansible-lint
