@@ -34,6 +34,7 @@ jobs:
           EOF
           fi
           yamllint .
+          rm -f .yamllint  # Clean up the config file after linting
 
       - name: Lint Ansible roles
         run: |
@@ -53,6 +54,7 @@ jobs:
           EOF
           fi
           ansible-lint
+          rm -f .ansible-lint  # Clean up the config file after linting
   
   molecule:
     runs-on: self-hosted
