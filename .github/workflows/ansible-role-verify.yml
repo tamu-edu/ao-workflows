@@ -1,0 +1,71 @@
+---
+name: ansible-role-verify
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible-lint yamllint
+
+      - name: Lint YAML files
+        run: |
+          # Create yamllint config if it doesn't exist
+          if [ ! -f .yamllint ]; then
+            cat > .yamllint << EOF
+          extends: default
+          rules:
+            line-length:
+              max: 120
+            comments:
+              min-spaces-from-content: 1
+            comments-indentation: disable
+            truthy:
+              allowed-values: ['true', 'false', 'yes', 'no']
+          EOF
+          fi
+          yamllint .
+
+      - name: Lint Ansible roles
+        run: |
+          # Create ansible-lint config if it doesn't exist
+          if [ ! -f .ansible-lint ]; then
+            cat > .ansible-lint << EOF
+          ---
+          profile: production
+          exclude_paths:
+            - .cache/
+            - .github/
+            - molecule/
+            - .ansible-lint
+          skip_list:
+            - yaml[line-length]  # Handled by yamllint
+          EOF
+          fi
+          ansible-lint
+  
+  molecule:
+    runs-on: self-hosted
+    needs: lint
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies if requirements.yml exists
+        run: |
+          if [ -f requirements.yml ]; then
+            ansible-galaxy install -r requirements.yml
+          else
+            echo "No requirements.yml found, skipping dependency installation."
+          fi
+
+      - name: Run Molecule tests
+        run: molecule test --all

@@ -1,0 +1,24 @@
+{
+  "name": "workflows",
+  "version": "1.0.0",
+  "description": "AO Linux Team github action reusable workflows",
+  "main": "index.js",
+  "scripts": {
+    "build": "npm run build-cookbook-version && npm run build-galaxy-verson",
+    "build-cookbook-version": "ncc build src/action-cookbook-version.ts -o cookbook-version",
+    "build-galaxy-verson": "ncc build src/action-galaxy-version.ts -o galaxy-version",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@types/node": "^24.0.1",
+    "@types/semver": "^7.7.0",
+    "@vercel/ncc": "^0.38.3",
+    "semver": "^7.7.2",
+    "typescript": "^5.8.3",
+    "yaml": "^2.8.0"
+  }
+}

@@ -1,0 +1,25 @@
+---
+name: ansible-collection-build
+
+on:
+  workflow_call:
+    inputs:
+      galaxy_hub_server:
+        description: "The Galaxy Hub server to publish the collection to"
+        required: true
+        default: "https://galaxy.ansible.com"
+        type: string
+      galaxy_hub_token:
+        description: "The Galaxy Hub API token for authentication"
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Publish Ansible collection
+        run: ansible-galaxy collection publish --force --no-sign *.tar.gz
