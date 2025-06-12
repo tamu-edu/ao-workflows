@@ -65,6 +65,7 @@ jobs:
 
       - name: Install dependencies if requirements.yml exists
         run: |
+          source ~/.bashrc
           if [ -f requirements.yml ]; then
             ansible-galaxy install -r requirements.yml
           else
