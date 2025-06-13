@@ -20,6 +20,17 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
+      - name: Build Ansible collection
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+          mkdir build
+          ansible-galaxy collection build --force --output-path build
 
       - name: Publish Ansible collection
-        run: ansible-galaxy collection publish --force --no-sign *.tar.gz
+        run: ansible-galaxy collection publish --server ${{ inputs.galaxy_hub_server }} --token ${{ inputs.galaxy_hub_token }} build/*.tar.gz
+
+      - name: Cleanup build artifacts
+        if: always()
+        run: rm -rf build
