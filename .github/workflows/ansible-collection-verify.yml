@@ -11,4 +11,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      
+      - name: Verify version is bumped
+        uses: tamu-edu/ao-workflows/galaxy-version@main

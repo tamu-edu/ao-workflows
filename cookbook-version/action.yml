@@ -1,0 +1,5 @@
+name: 'Chef Cookbook Version compare'
+description: 'Checks current version of Chef cookbook with the main branch to verify it has been bumped'
+runs:
+  using: node20
+  main: index.js

@@ -1,0 +1,8 @@
+---
+name: Galaxy Version Check
+description: |
+  This action checks if the version in galaxy.yml has been bumped.
+  It is intended to be used in workflows that require version verification before proceeding with further steps.
+runs:
+  using: node20
+  main: index.js

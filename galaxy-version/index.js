@@ -26409,7 +26409,13 @@ const fs_1 = __importDefault(__nccwpck_require__(9896));
 const yaml_1 = __importDefault(__nccwpck_require__(8815));
 function compareVersions() {
     return __awaiter(this, void 0, void 0, function* () {
-        (0, child_process_1.execSync)('git show origin/main:galaxy.yml > galaxy-main.yml');
+        try {
+            (0, child_process_1.execSync)('git show origin/main:galaxy.yml > galaxy-main.yml');
+        }
+        catch (_a) {
+            console.log('Could not fetch main branch galaxy.yml, continuing with current version');
+            return;
+        }
         const galaxyMainData = yaml_1.default.parse(fs_1.default.readFileSync('galaxy-main.yml', 'utf-8'));
         const galaxyCurrData = yaml_1.default.parse(fs_1.default.readFileSync('galaxy.yml', 'utf-8'));
         if (galaxyMainData && galaxyCurrData) {

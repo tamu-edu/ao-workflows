@@ -5,7 +5,12 @@ import fs from 'fs';
 import YAML from 'yaml';
 
 async function compareVersions() {
-  execSync('git show origin/main:galaxy.yml > galaxy-main.yml')
+  try {
+    execSync('git show origin/main:galaxy.yml > galaxy-main.yml')
+  } catch {
+    console.log('Could not fetch main branch galaxy.yml, continuing with current version')
+    return;
+  }
   const galaxyMainData = YAML.parse(fs.readFileSync('galaxy-main.yml', 'utf-8'));
   const galaxyCurrData = YAML.parse(fs.readFileSync('galaxy.yml', 'utf-8'));
 
