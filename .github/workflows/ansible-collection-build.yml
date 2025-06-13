@@ -26,7 +26,10 @@ jobs:
           ansible-galaxy collection build --force --output-path build
 
       - name: Publish Ansible collection
-        run: ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
 
       - name: Cleanup build artifacts
         if: always()
