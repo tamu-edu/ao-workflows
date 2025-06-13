@@ -66,6 +66,7 @@ jobs:
       - name: Install dependencies if requirements.yml exists
         run: |
           source ~/.bashrc
+          conda activate ansible
           if [ -f requirements.yml ]; then
             ansible-galaxy install -r requirements.yml
           else
@@ -75,4 +76,12 @@ jobs:
       - name: Run Molecule tests
         run: |
           source ~/.bashrc
+          conda activate ansible
           molecule test --all
+
+      - name: Run Molecule destroy
+        if: always()
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+          molecule destroy --all || true  # Ensure cleanup even if tests fail
