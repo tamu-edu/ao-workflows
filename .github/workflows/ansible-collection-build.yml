@@ -10,6 +10,9 @@ on:
       galaxy_hub_token:
         description: "The Galaxy Hub API token for authentication"
         required: true
+      github_token:
+        description: "SSH token for accessing private repositories"
+        required: true
 
 jobs:
   publish:
@@ -17,6 +20,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.github_token }}
+          submodules: 'recursive'
+
       
       - name: Build Ansible collection
         run: |
