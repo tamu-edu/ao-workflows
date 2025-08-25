@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.token || '' }}
-          submodules: 'recursive'
+          submodules: ${{ secrets.token && 'recursive' || '' }}
 
       
       - name: Build Ansible collection
