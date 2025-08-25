@@ -1,0 +1,13 @@
+---
+name: Increment Galaxy Version
+description: |
+  This action automatically increments the version in galaxy.yml using a date-time based semver format.
+  Format: YEAR.MONTHDAY.HOURMINUTE (e.g., 2025.825.1430 for Aug 25, 2025 at 2:30 PM)
+inputs:
+  timezone:
+    description: 'Timezone for version timestamp (default: America/Chicago)'
+    required: false
+    default: 'America/Chicago'
+runs:
+  using: node20
+  main: index.js
