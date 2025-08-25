@@ -43,14 +43,14 @@ jobs:
           conda activate ansible
           ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
 
-      - name: Push galaxy.yml back to the repository
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: github-actions
-          author_email: github-actions@github.com
-          message: 'Update galaxy.yml version [skip ci]'
-          add: 'galaxy.yml'
-          cwd: '.'
+      # - name: Push galaxy.yml back to the repository
+      #   uses: EndBug/add-and-commit@v9
+      #   with:
+      #     author_name: github-actions
+      #     author_email: github-actions@github.com
+      #     message: 'Update galaxy.yml version [skip ci]'
+      #     add: 'galaxy.yml'
+      #     cwd: '.'
 
       - name: Cleanup build artifacts
         if: always()
