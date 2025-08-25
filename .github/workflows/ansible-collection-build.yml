@@ -37,7 +37,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
+          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
 
       - name: Cleanup build artifacts
         if: always()
