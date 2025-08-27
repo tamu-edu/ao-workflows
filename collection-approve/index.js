@@ -25700,6 +25700,7 @@ const fs_1 = __importDefault(__nccwpck_require__(9896));
 const yaml_1 = __importDefault(__nccwpck_require__(8815));
 function approveCollection() {
     return __awaiter(this, void 0, void 0, function* () {
+        const client = new http.HttpClient('collection-approve-action');
         try {
             const ahHost = core.getInput('ah_host', { required: true });
             const ahToken = core.getInput('ah_token', { required: true });
@@ -25712,7 +25713,6 @@ function approveCollection() {
                 core.setFailed('Version must be provided either as input or in galaxy.yml');
                 return;
             }
-            const client = new http.HttpClient('collection-approve-action');
             const baseUrl = ahHost.startsWith('http') ? ahHost : `https://${ahHost}`;
             const headers = {
                 'Authorization': `Token ${ahToken}`,
@@ -25732,6 +25732,9 @@ function approveCollection() {
         }
         catch (error) {
             core.setFailed(`Action failed: ${error}`);
+        }
+        finally {
+            client.dispose();
         }
     });
 }

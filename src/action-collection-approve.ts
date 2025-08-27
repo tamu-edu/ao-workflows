@@ -17,6 +17,8 @@ interface ApiResponse<T> {
 }
 
 async function approveCollection() {
+  const client = new http.HttpClient('collection-approve-action');
+  
   try {
     const ahHost = core.getInput('ah_host', { required: true });
     const ahToken = core.getInput('ah_token', { required: true });
@@ -31,7 +33,6 @@ async function approveCollection() {
       return;
     }
 
-    const client = new http.HttpClient('collection-approve-action');
     const baseUrl = ahHost.startsWith('http') ? ahHost : `https://${ahHost}`;
     const headers = {
       'Authorization': `Token ${ahToken}`,
@@ -53,6 +54,8 @@ async function approveCollection() {
     core.setOutput('approved', 'true');
   } catch (error) {
     core.setFailed(`Action failed: ${error}`);
+  } finally {
+    client.dispose();
   }
 }
 

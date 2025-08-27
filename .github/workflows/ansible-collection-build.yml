@@ -14,11 +14,14 @@ on:
         type: string
         default: "published"
     secrets:
-      galaxy_hub_server:
-        description: "The Galaxy Hub server to publish the collection to"
+      aap_server:
+        description: "The Ansible Automation Platform server to publish the collection to"
         required: true
       galaxy_hub_token:
         description: "The Galaxy Hub API token for authentication"
+        required: true
+      aap_token:
+        description: "The Ansible Automation Platform API token for authentication"
         required: true
       token:
         description: "SSH token for accessing private repositories"
@@ -51,7 +54,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
+          ansible-galaxy collection publish --server ${{ secrets.aap_server }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
 
       # - name: Push galaxy.yml back to the repository
       #   uses: EndBug/add-and-commit@v9
@@ -65,7 +68,7 @@ jobs:
       - name: Auto Approve collection
         uses: tamu-edu/ao-workflows/collection-approve@main
         with:
-          ah_host: ${{ secrets.galaxy_hub_server }}
+          ah_host: ${{ secrets.aap_server }}
           ah_token: ${{ secrets.galaxy_hub_token }}
           namespace: ao_ansible
           name: ${{ inputs.collection_name }}
@@ -75,8 +78,8 @@ jobs:
       - name: Sync Projects
         uses: tamu-edu/ao-workflows/project-sync@main
         with:
-          ah_host: ${{ secrets.galaxy_hub_server }}
-          ah_token: ${{ secrets.galaxy_hub_token }}
+          ah_host: ${{ secrets.aap_server }}
+          ah_token: ${{ secrets.aap_token }}
 
       - name: Cleanup build artifacts
         if: always()

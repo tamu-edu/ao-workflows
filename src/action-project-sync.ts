@@ -2,15 +2,15 @@ import * as core from '@actions/core';
 import * as http from '@actions/http-client';
 
 async function syncProjects() {
+    const client = new http.HttpClient('project-sync-action');
     try {
         const ahHost = core.getInput('ah_host', { required: true });
         const ahToken = core.getInput('ah_token', { required: true });
         const projectName = core.getInput('project_name');
 
-        const client = new http.HttpClient('project-sync-action');
         const baseUrl = ahHost.startsWith('http') ? ahHost : `https://${ahHost}`;
         const headers = {
-            'Authorization': `Token ${ahToken}`,
+            'Authorization': `Bearer ${ahToken}`,
             'Content-Type': 'application/json'
         };
 
@@ -38,6 +38,8 @@ async function syncProjects() {
         core.info(`Project(s) synced successfully`);
     } catch (error) {
         core.setFailed(`Action failed: ${error}`);
+    } finally {
+        client.dispose();
     }
 }
 

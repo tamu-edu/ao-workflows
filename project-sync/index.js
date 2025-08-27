@@ -25695,14 +25695,14 @@ const core = __importStar(__nccwpck_require__(7484));
 const http = __importStar(__nccwpck_require__(4844));
 function syncProjects() {
     return __awaiter(this, void 0, void 0, function* () {
+        const client = new http.HttpClient('project-sync-action');
         try {
             const ahHost = core.getInput('ah_host', { required: true });
             const ahToken = core.getInput('ah_token', { required: true });
             const projectName = core.getInput('project_name');
-            const client = new http.HttpClient('project-sync-action');
             const baseUrl = ahHost.startsWith('http') ? ahHost : `https://${ahHost}`;
             const headers = {
-                'Authorization': `Token ${ahToken}`,
+                'Authorization': `Bearer ${ahToken}`,
                 'Content-Type': 'application/json'
             };
             // Get the list of projects from the Ansible Hub
@@ -25729,6 +25729,9 @@ function syncProjects() {
         }
         catch (error) {
             core.setFailed(`Action failed: ${error}`);
+        }
+        finally {
+            client.dispose();
         }
     });
 }
