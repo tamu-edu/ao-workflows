@@ -72,6 +72,12 @@ jobs:
           timeout: 300
           interval: 10
 
+      - name: Sync Projects
+        uses: tamu-edu/ao-workflows/project-sync@main
+        with:
+          ah_host: ${{ secrets.galaxy_hub_server }}
+          ah_token: ${{ secrets.galaxy_hub_token }}
+
       - name: Cleanup build artifacts
         if: always()
         run: rm -rf build

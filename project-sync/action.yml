@@ -1,0 +1,18 @@
+name: 'Sync Ansible Automation Platform Projects'
+description: 'Sync one or all AAP projects from their source repositories'
+inputs:
+  ah_host:
+    description: 'Automation Hub hostname (e.g., aap.ao.tamu.edu)'
+    required: true
+  ah_token:
+    description: 'Automation Hub API token'
+    required: true
+  project_name:
+    description: 'Specific project name to sync (if empty, syncs all projects)'
+    required: false
+outputs:
+  synced:
+    description: 'Whether the project(s) were successfully synced'
+runs:
+  using: 'node20'
+  main: 'index.js'

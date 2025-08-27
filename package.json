@@ -4,11 +4,12 @@
   "description": "AO Linux Team github action reusable workflows",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build-cookbook-version && npm run build-galaxy-verson && npm run build-increment-galaxy-version && npm run build-collection-approve",
+    "build": "npm run build-cookbook-version && npm run build-galaxy-verson && npm run build-increment-galaxy-version && npm run build-collection-approve && npm run build-project-sync",
     "build-cookbook-version": "ncc build src/action-cookbook-version.ts -o cookbook-version",
     "build-galaxy-verson": "ncc build src/action-galaxy-version.ts -o galaxy-version",
     "build-increment-galaxy-version": "ncc build src/action-increment-galaxy-version.ts -o increment-galaxy-version",
     "build-collection-approve": "ncc build src/action-collection-approve.ts -o collection-approve",
+    "build-project-sync": "ncc build src/action-project-sync.ts -o project-sync",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
