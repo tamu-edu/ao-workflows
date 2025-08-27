@@ -4,10 +4,11 @@
   "description": "AO Linux Team github action reusable workflows",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build-cookbook-version && npm run build-galaxy-verson && npm run build-increment-galaxy-version",
+    "build": "npm run build-cookbook-version && npm run build-galaxy-verson && npm run build-increment-galaxy-version && npm run build-collection-approve",
     "build-cookbook-version": "ncc build src/action-cookbook-version.ts -o cookbook-version",
     "build-galaxy-verson": "ncc build src/action-galaxy-version.ts -o galaxy-version",
     "build-increment-galaxy-version": "ncc build src/action-increment-galaxy-version.ts -o increment-galaxy-version",
+    "build-collection-approve": "ncc build src/action-collection-approve.ts -o collection-approve",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,9 +16,11 @@
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
+    "@actions/http-client": "^2.2.3",
     "@types/node": "^24.0.1",
     "@types/semver": "^7.7.0",
     "@vercel/ncc": "^0.38.3",
+    "axios": "^1.11.0",
     "semver": "^7.7.2",
     "typescript": "^5.8.3",
     "yaml": "^2.8.0"

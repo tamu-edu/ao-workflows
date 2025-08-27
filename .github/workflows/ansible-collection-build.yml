@@ -3,6 +3,16 @@ name: ansible-collection-build
 
 on:
   workflow_call:
+    inputs:
+      collection_name:
+        description: "The name of the collection to approve"
+        required: true
+        type: string
+      hub_repository:
+        description: "The hub repository to publish to (published, staging, etc.)"
+        required: false
+        type: string
+        default: "published"
     secrets:
       galaxy_hub_server:
         description: "The Galaxy Hub server to publish the collection to"
@@ -41,7 +51,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }} --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
+          ansible-galaxy collection publish --server ${{ secrets.galaxy_hub_server }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
 
       # - name: Push galaxy.yml back to the repository
       #   uses: EndBug/add-and-commit@v9
@@ -51,6 +61,16 @@ jobs:
       #     message: 'Update galaxy.yml version [skip ci]'
       #     add: 'galaxy.yml'
       #     cwd: '.'
+
+      - name: Auto Approve collection
+        uses: tamu-edu/ao-workflows/collection-approve@main
+        with:
+          ah_host: ${{ secrets.galaxy_hub_server }}
+          ah_token: ${{ secrets.galaxy_hub_token }}
+          namespace: ao_ansible
+          name: ${{ inputs.collection_name }}
+          timeout: 300
+          interval: 10
 
       - name: Cleanup build artifacts
         if: always()

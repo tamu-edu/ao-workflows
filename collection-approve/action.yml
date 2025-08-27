@@ -1,0 +1,32 @@
+name: 'Approve Ansible Collection'
+description: 'Auto-approve an Ansible collection in Red Hat Automation Hub'
+inputs:
+  ah_host:
+    description: 'Automation Hub hostname (e.g., console.redhat.com or your private hub)'
+    required: true
+  ah_token:
+    description: 'Automation Hub API token'
+    required: true
+  namespace:
+    description: 'Collection namespace'
+    required: true
+  name:
+    description: 'Collection name'
+    required: true
+  version:
+    description: 'Collection version (if not provided, will read from galaxy.yml)'
+    required: false
+  timeout:
+    description: 'Timeout in seconds for approval process'
+    required: false
+    default: '300'
+  interval:
+    description: 'Interval in seconds between retry attempts'
+    required: false
+    default: '10'
+outputs:
+  approved:
+    description: 'Whether the collection was successfully approved'
+runs:
+  using: 'node20'
+  main: 'index.js'
