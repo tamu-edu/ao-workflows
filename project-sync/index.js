@@ -25700,6 +25700,11 @@ function syncProjects() {
             const ahHost = core.getInput('ah_host', { required: true });
             const ahToken = core.getInput('ah_token', { required: true });
             const projectName = core.getInput('project_name');
+            const syncTimeout = parseInt(core.getInput('sync_timeout') || '300');
+            const syncPollInterval = parseInt(core.getInput('sync_poll_interval') || '10');
+            const syncRetryAttempts = parseInt(core.getInput('sync_retry_attempts') || '3');
+            const retryDelay = parseInt(core.getInput('retry_delay') || '10');
+            const projectSyncDelay = parseInt(core.getInput('project_sync_delay') || '5');
             const baseUrl = ahHost.startsWith('http') ? ahHost : `https://${ahHost}`;
             const headers = {
                 'Authorization': `Bearer ${ahToken}`,
@@ -25711,6 +25716,7 @@ function syncProjects() {
                 core.setFailed(`No projects found`);
                 return;
             }
+            const results = [];
             if (projectName && projectName.trim() != '') {
                 const project = projects.find(p => p.name === projectName);
                 if (!project) {
@@ -25718,14 +25724,33 @@ function syncProjects() {
                     return;
                 }
                 core.info(`Syncing project: ${projectName}`);
-                yield checkAndSyncProject(client, baseUrl, headers, project.id);
-                core.info('Project synced successfully');
+                const result = yield checkAndSyncProject(client, baseUrl, headers, project.id, project.name, syncTimeout, syncPollInterval, syncRetryAttempts, retryDelay);
+                results.push(result);
             }
             else {
                 core.info(`Syncing all projects`);
-                yield Promise.all(projects.map(p => checkAndSyncProject(client, baseUrl, headers, p.id)));
+                for (const project of projects) {
+                    const result = yield checkAndSyncProject(client, baseUrl, headers, project.id, project.name, syncTimeout, syncPollInterval, syncRetryAttempts, retryDelay);
+                    results.push(result);
+                    // Add delay between starting each project sync (except for the last one)
+                    if (project !== projects[projects.length - 1]) {
+                        core.info(`Waiting ${projectSyncDelay} seconds before starting next project sync...`);
+                        yield sleep(projectSyncDelay * 1000);
+                    }
+                }
             }
-            core.info(`Project(s) synced successfully`);
+            // Check if any projects failed
+            const failures = results.filter(r => !r.success);
+            if (failures.length > 0) {
+                core.error('The following projects failed to sync:');
+                failures.forEach(f => {
+                    core.error(`  - ${f.projectName} (ID: ${f.projectId}): ${f.error}`);
+                });
+                core.setFailed(`${failures.length} project(s) failed to sync`);
+            }
+            else {
+                core.info(`All project(s) synced successfully`);
+            }
         }
         catch (error) {
             core.setFailed(`Action failed: ${error}`);
@@ -25747,21 +25772,114 @@ function getProjects(client, baseUrl, headers) {
         return data.results || [];
     });
 }
-function checkAndSyncProject(client, baseUrl, headers, projectId) {
+function checkAndSyncProject(client, baseUrl, headers, projectId, projectName, syncTimeout, syncPollInterval, syncRetryAttempts, retryDelay) {
     return __awaiter(this, void 0, void 0, function* () {
-        const projectResponse = yield client.get(`${baseUrl}/api/controller/v2/projects/${projectId}/update/`, headers);
-        const body = yield projectResponse.readBody();
-        const data = JSON.parse(body);
-        if (!data.can_update) {
-            core.info(`Project ${projectId} cannot be updated.  Skipping...`);
-            return;
+        for (let attempt = 1; attempt <= syncRetryAttempts; attempt++) {
+            try {
+                // Check if project can be updated
+                const projectResponse = yield client.get(`${baseUrl}/api/controller/v2/projects/${projectId}/update/`, headers);
+                const body = yield projectResponse.readBody();
+                const data = JSON.parse(body);
+                if (!data.can_update) {
+                    core.info(`Project ${projectName} (ID: ${projectId}) cannot be updated. Skipping...`);
+                    return {
+                        projectId,
+                        projectName,
+                        success: true
+                    };
+                }
+                // Trigger the sync
+                core.info(`Starting sync for project ${projectName} (ID: ${projectId}) - Attempt ${attempt}/${syncRetryAttempts}`);
+                const response = yield client.post(`${baseUrl}/api/controller/v2/projects/${projectId}/update/`, '', headers);
+                if (response.message.statusCode !== 202) {
+                    const responseBody = yield response.readBody();
+                    throw new Error(`Failed to start sync: HTTP ${response.message.statusCode} - ${responseBody}`);
+                }
+                // Get the project update ID from the response
+                const syncResponseBody = yield response.readBody();
+                const syncResponse = JSON.parse(syncResponseBody);
+                const updateId = syncResponse.project_update || syncResponse.id;
+                if (!updateId) {
+                    throw new Error('No project update ID returned from sync request');
+                }
+                core.info(`Project update started with ID: ${updateId}`);
+                // Wait for the sync to complete
+                const success = yield waitForProjectUpdate(client, baseUrl, headers, updateId, projectName, syncTimeout, syncPollInterval);
+                if (success) {
+                    core.info(`✓ Project ${projectName} (ID: ${projectId}) synced successfully`);
+                    return {
+                        projectId,
+                        projectName,
+                        success: true
+                    };
+                }
+                else {
+                    throw new Error('Project sync failed or timed out');
+                }
+            }
+            catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                core.warning(`Attempt ${attempt}/${syncRetryAttempts} failed for project ${projectName}: ${errorMessage}`);
+                if (attempt < syncRetryAttempts) {
+                    core.info(`Waiting ${retryDelay} seconds before retry...`);
+                    yield sleep(retryDelay * 1000);
+                }
+                else {
+                    core.error(`✗ Project ${projectName} (ID: ${projectId}) failed after ${syncRetryAttempts} attempts`);
+                    return {
+                        projectId,
+                        projectName,
+                        success: false,
+                        error: errorMessage
+                    };
+                }
+            }
         }
-        const response = yield client.post(`${baseUrl}/api/controller/v2/projects/${projectId}/update/`, '', headers);
-        if (response.message.statusCode !== 202) {
-            core.setFailed(`Failed to sync project ${projectId}: ${response.message.statusCode}`);
-            return;
-        }
+        // Should never reach here, but TypeScript needs a return
+        return {
+            projectId,
+            projectName,
+            success: false,
+            error: 'Unknown error'
+        };
     });
+}
+function waitForProjectUpdate(client, baseUrl, headers, updateId, projectName, timeout, pollInterval) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const startTime = Date.now();
+        const maxTime = timeout * 1000;
+        while (Date.now() - startTime < maxTime) {
+            try {
+                const response = yield client.get(`${baseUrl}/api/controller/v2/project_updates/${updateId}/`, headers);
+                if (response.message.statusCode !== 200) {
+                    core.warning(`Failed to get project update status: ${response.message.statusCode}`);
+                    yield sleep(pollInterval * 1000);
+                    continue;
+                }
+                const body = yield response.readBody();
+                const status = JSON.parse(body);
+                core.info(`Project ${projectName} sync status: ${status.status}`);
+                if (status.status === 'successful') {
+                    return true;
+                }
+                else if (status.status === 'failed' || status.status === 'error' || status.status === 'canceled') {
+                    core.error(`Project sync ended with status: ${status.status}`);
+                    return false;
+                }
+                // Status is still running/pending/waiting, continue polling
+                yield sleep(pollInterval * 1000);
+            }
+            catch (error) {
+                core.warning(`Error checking project update status: ${error}`);
+                yield sleep(pollInterval * 1000);
+            }
+        }
+        core.error(`Timeout waiting for project ${projectName} to complete after ${timeout} seconds`);
+        return false;
+    });
+}
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 void syncProjects();
 
