@@ -1,0 +1,76 @@
+---
+name: Deploy AAP Project
+
+on:
+  workflow_call:
+    inputs:
+      aap_environment:
+        description: "Target AAP environment (development or production)"
+        required: true
+        type: string
+      op_vault:
+        description: "1Password vault name"
+        default: "AO-Infrastructure-General"
+        type: string
+      project_name:
+        description: "AAP Project name to sync after deployment"
+        required: true
+        type: string
+    secrets:
+      op_connect_host:
+        description: "1Password Connect server URL"
+        required: true
+      op_connect_token:
+        description: "1Password Connect token"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load secrets from 1Password
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v3
+        env:
+          OP_CONNECT_HOST: ${{ secrets.op_connect_host }}
+          OP_CONNECT_TOKEN: ${{ secrets.op_connect_token }}
+          AAP_HOSTNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hostname
+          AAP_USERNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/username
+          AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/token
+
+      - name: Activate Ansible environment
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+
+      - name: Install collection dependencies
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+          if [ -f "collections/requirements.yml" ]; then
+            ansible-galaxy collection install -r collections/requirements.yml
+          fi
+
+      - name: Deploy to AAP
+        run: |
+          source ~/.bashrc
+          conda activate ansible
+          export OP_CONNECT_HOST="${{ secrets.op_connect_host }}"
+          export OP_CONNECT_TOKEN="${{ secrets.op_connect_token }}"
+          ansible-playbook installation/dispatch_to_aap.yml \
+            -e "aap_hostname=${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}" \
+            -e "aap_username=${{ steps.op-load-secret.outputs.AAP_USERNAME }}" \
+            -e "aap_token=${{ steps.op-load-secret.outputs.AAP_TOKEN }}"
+
+      - name: Sync AAP project repo
+        uses: tamu-edu/ao-workflows/project-sync@main
+        with:
+          ah_host: ${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
+          ah_token: ${{ steps.op-load-secret.outputs.AAP_TOKEN }}
+          project_name: ${{ inputs.project_name }}
