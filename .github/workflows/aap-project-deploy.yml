@@ -49,13 +49,13 @@ jobs:
           source ~/.bashrc
           conda activate ansible
 
-      - name: Install collection dependencies
-        run: |
-          source ~/.bashrc
-          conda activate ansible
-          if [ -f "collections/requirements.yml" ]; then
-            ansible-galaxy collection install -r collections/requirements.yml
-          fi
+      # - name: Install collection dependencies
+      #   run: |
+      #     source ~/.bashrc
+      #     conda activate ansible
+      #     if [ -f "collections/requirements.yml" ]; then
+      #       ansible-galaxy collection install -r collections/requirements.yml
+      #     fi
 
       - name: Deploy to AAP
         run: |
