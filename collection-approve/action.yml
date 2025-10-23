@@ -24,6 +24,10 @@ inputs:
     description: 'Interval in seconds between retry attempts'
     required: false
     default: '10'
+  ignore_certs:
+    description: 'Ignore SSL certificate validation errors'
+    required: false
+    default: 'false'
 outputs:
   approved:
     description: 'Whether the collection was successfully approved'

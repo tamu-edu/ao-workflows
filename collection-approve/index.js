@@ -25700,7 +25700,14 @@ const fs_1 = __importDefault(__nccwpck_require__(9896));
 const yaml_1 = __importDefault(__nccwpck_require__(8815));
 function approveCollection() {
     return __awaiter(this, void 0, void 0, function* () {
-        const client = new http.HttpClient('collection-approve-action');
+        const ignoreCerts = core.getInput('ignore_certs') === 'true';
+        const requestOptions = {
+            ignoreSslError: ignoreCerts
+        };
+        if (ignoreCerts) {
+            core.info('Certificate validation disabled (ignore_certs=true)');
+        }
+        const client = new http.HttpClient('collection-approve-action', [], requestOptions);
         try {
             const ahHost = core.getInput('ah_host', { required: true });
             const ahToken = core.getInput('ah_token', { required: true });

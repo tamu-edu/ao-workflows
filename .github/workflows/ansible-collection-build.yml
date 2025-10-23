@@ -89,6 +89,7 @@ jobs:
           name: ${{ inputs.collection_name }}
           timeout: 300
           interval: 10
+          ignore_certs: true
 
       - name: Sync Projects
         uses: tamu-edu/ao-workflows/project-sync@main

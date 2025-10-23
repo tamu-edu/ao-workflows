@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import * as http from '@actions/http-client';
+import * as ifm from '@actions/http-client/lib/interfaces';
 import fs from 'fs';
 import YAML from 'yaml';
 
@@ -17,8 +18,18 @@ interface ApiResponse<T> {
 }
 
 async function approveCollection() {
-  const client = new http.HttpClient('collection-approve-action');
-  
+  const ignoreCerts = core.getInput('ignore_certs') === 'true';
+
+  const requestOptions: ifm.RequestOptions = {
+    ignoreSslError: ignoreCerts
+  };
+
+  if (ignoreCerts) {
+    core.info('Certificate validation disabled (ignore_certs=true)');
+  }
+
+  const client = new http.HttpClient('collection-approve-action', [], requestOptions);
+
   try {
     const ahHost = core.getInput('ah_host', { required: true });
     const ahToken = core.getInput('ah_token', { required: true });
