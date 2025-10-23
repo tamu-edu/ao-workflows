@@ -8,20 +8,25 @@ on:
         description: "The name of the collection to approve"
         required: true
         type: string
+      aap_environment:
+        description: "Target AAP environment (development or production)"
+        required: true
+        type: string
       hub_repository:
         description: "The hub repository to publish to (published, staging, etc.)"
         required: false
         type: string
         default: "published"
+      op_vault:
+        description: "1Password vault name"
+        default: "AO-Infrastructure-General"
+        type: string
     secrets:
-      aap_server:
-        description: "The Ansible Automation Platform server to publish the collection to"
+      op_connect_host:
+        description: "1Password Connect server URL"
         required: true
-      galaxy_hub_token:
-        description: "The Galaxy Hub API token for authentication"
-        required: true
-      aap_token:
-        description: "The Ansible Automation Platform API token for authentication"
+      op_connect_token:
+        description: "1Password Connect token"
         required: true
       token:
         description: "SSH token for accessing private repositories"
@@ -37,6 +42,16 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.token || github.token }}
           submodules: ${{ secrets.token && 'recursive' || '' }}
+
+      - name: Load secrets from 1Password
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v3
+        env:
+          OP_CONNECT_HOST: ${{ secrets.op_connect_host }}
+          OP_CONNECT_TOKEN: ${{ secrets.op_connect_token }}
+          AAP_HOSTNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hostname
+          AAP_HUB_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hub_token
+          AAP_CONTROLLER_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
 
       - name: Increment Galaxy Version
         uses: tamu-edu/ao-workflows/increment-galaxy-version@main
@@ -54,7 +69,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          ansible-galaxy collection publish --server ${{ secrets.aap_server }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ secrets.galaxy_hub_token }} build/*.tar.gz
+          ansible-galaxy collection publish --server https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ steps.op-load-secret.outputs.AAP_HUB_TOKEN }} build/*.tar.gz
 
       # - name: Push galaxy.yml back to the repository
       #   uses: EndBug/add-and-commit@v9
@@ -68,8 +83,8 @@ jobs:
       - name: Auto Approve collection
         uses: tamu-edu/ao-workflows/collection-approve@main
         with:
-          ah_host: ${{ secrets.aap_server }}
-          ah_token: ${{ secrets.galaxy_hub_token }}
+          ah_host: https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
+          ah_token: ${{ steps.op-load-secret.outputs.AAP_HUB_TOKEN }}
           namespace: ao_ansible
           name: ${{ inputs.collection_name }}
           timeout: 300
@@ -78,8 +93,8 @@ jobs:
       - name: Sync Projects
         uses: tamu-edu/ao-workflows/project-sync@main
         with:
-          ah_host: ${{ secrets.aap_server }}
-          ah_token: ${{ secrets.aap_token }}
+          ah_host: https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
+          ah_token: ${{ steps.op-load-secret.outputs.AAP_CONTROLLER_TOKEN }}
 
       - name: Cleanup build artifacts
         if: always()

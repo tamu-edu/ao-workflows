@@ -63,6 +63,7 @@ jobs:
           conda activate ansible
           export OP_CONNECT_HOST="${{ secrets.op_connect_host }}"
           export OP_CONNECT_TOKEN="${{ secrets.op_connect_token }}"
+          export AAP_ENVIRONMENT="${{ inputs.aap_environment }}"
           ansible-playbook installation/dispatch_to_aap.yml \
             -e "aap_hostname=${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}" \
             -e "aap_username=${{ steps.op-load-secret.outputs.AAP_USERNAME }}" \
