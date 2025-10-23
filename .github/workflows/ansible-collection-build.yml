@@ -53,21 +53,6 @@ jobs:
           AAP_HUB_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hub_token
           AAP_CONTROLLER_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
 
-      - name: Validate secrets loaded
-        run: |
-          echo "AAP_HOSTNAME length: ${#AAP_HOSTNAME}"
-          echo "AAP_HUB_TOKEN length: ${#AAP_HUB_TOKEN}"
-          echo "AAP_CONTROLLER_TOKEN length: ${#AAP_CONTROLLER_TOKEN}"
-          if [ -z "$AAP_HUB_TOKEN" ]; then
-            echo "ERROR: AAP_HUB_TOKEN is empty"
-            exit 1
-          fi
-          echo "All secrets loaded successfully"
-        env:
-          AAP_HOSTNAME: ${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
-          AAP_HUB_TOKEN: ${{ steps.op-load-secret.outputs.AAP_HUB_TOKEN }}
-          AAP_CONTROLLER_TOKEN: ${{ steps.op-load-secret.outputs.AAP_CONTROLLER_TOKEN }}
-
       - name: Increment Galaxy Version
         uses: tamu-edu/ao-workflows/increment-galaxy-version@main
         with:
@@ -84,7 +69,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          ansible-galaxy collection publish --server https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token ${{ steps.op-load-secret.outputs.AAP_HUB_TOKEN }} build/*.tar.gz
+          ansible-galaxy collection publish --server https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}/api/galaxy/content/${{ inputs.hub_repository }}/ --ignore-certs --token "${{ steps.op-load-secret.outputs.AAP_HUB_TOKEN }}" build/*.tar.gz
 
       # - name: Push galaxy.yml back to the repository
       #   uses: EndBug/add-and-commit@v9
