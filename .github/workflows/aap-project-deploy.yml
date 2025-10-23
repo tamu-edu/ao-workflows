@@ -43,19 +43,45 @@ jobs:
           AAP_HOSTNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hostname
           AAP_USERNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/username
           AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
+          HUB_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hub_token
 
-      - name: Activate Ansible environment
+      - name: Configure Ansible for workflow
+        run: |
+          # Create local ansible.cfg with environment-specific hub token
+          cat > ansible.cfg << 'EOF'
+          [defaults]
+          collections_paths = ./.ansible_collections:~/.ansible/collections:/usr/share/ansible/collections
+
+          [galaxy]
+          server_list = published_repo, rh-certified_repo, community_repo
+
+          [galaxy_server.published_repo]
+          url = https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}/api/galaxy/content/published/
+          token = ${{ steps.op-load-secret.outputs.HUB_TOKEN }}
+          validate_certs = false
+
+          [galaxy_server.rh-certified_repo]
+          url = https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}/api/galaxy/content/rh-certified/
+          token = ${{ steps.op-load-secret.outputs.HUB_TOKEN }}
+          validate_certs = false
+
+          [galaxy_server.community_repo]
+          url = https://galaxy.ansible.com/
+          EOF
+
+          echo "Created local ansible.cfg with environment-specific configuration"
+
+      - name: Install collection dependencies
         run: |
           source ~/.bashrc
           conda activate ansible
 
-      # - name: Install collection dependencies
-      #   run: |
-      #     source ~/.bashrc
-      #     conda activate ansible
-      #     if [ -f "collections/requirements.yml" ]; then
-      #       ansible-galaxy collection install -r collections/requirements.yml
-      #     fi
+          # Create local collections directory for this workflow run
+          mkdir -p ./.ansible_collections
+
+          if [ -f "installation/requirements.yml" ]; then
+            ansible-galaxy collection install -r installation/requirements.yml -p ./.ansible_collections
+          fi
 
       - name: Deploy to AAP
         run: |
@@ -75,3 +101,11 @@ jobs:
           ah_host: ${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
           ah_token: ${{ steps.op-load-secret.outputs.AAP_TOKEN }}
           project_name: ${{ inputs.project_name }}
+
+      - name: Cleanup workflow artifacts
+        if: always()
+        run: |
+          echo "Cleaning up workflow-specific files..."
+          rm -rf ./.ansible_collections
+          rm -f ansible.cfg
+          echo "Cleanup complete"
