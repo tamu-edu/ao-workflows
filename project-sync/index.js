@@ -25695,7 +25695,14 @@ const core = __importStar(__nccwpck_require__(7484));
 const http = __importStar(__nccwpck_require__(4844));
 function syncProjects() {
     return __awaiter(this, void 0, void 0, function* () {
-        const client = new http.HttpClient('project-sync-action');
+        const ignoreCerts = core.getBooleanInput('ignore_certs');
+        const requestOptions = {
+            ignoreSslError: ignoreCerts
+        };
+        if (ignoreCerts) {
+            core.info('Certificate validation disabled (ignore_certs=true)');
+        }
+        const client = new http.HttpClient('project-sync-action', [], requestOptions);
         try {
             const ahHost = core.getInput('ah_host', { required: true });
             const ahToken = core.getInput('ah_token', { required: true });

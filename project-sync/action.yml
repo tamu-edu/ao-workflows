@@ -30,6 +30,10 @@ inputs:
     description: 'Delay in seconds between starting each project sync (when syncing all projects)'
     required: false
     default: '3'
+  ignore_certs:
+    description: 'Ignore SSL certificate validation errors'
+    required: false
+    default: 'false'
 outputs:
   synced:
     description: 'Whether the project(s) were successfully synced'

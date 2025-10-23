@@ -96,6 +96,7 @@ jobs:
         with:
           ah_host: https://${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
           ah_token: ${{ steps.op-load-secret.outputs.AAP_CONTROLLER_TOKEN }}
+          ignore_certs: true
 
       - name: Cleanup build artifacts
         if: always()

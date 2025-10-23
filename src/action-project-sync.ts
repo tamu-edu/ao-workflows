@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import * as http from '@actions/http-client';
+import * as ifm from '@actions/http-client/lib/interfaces';
 
 interface Project {
     id: number;
@@ -26,7 +27,17 @@ interface SyncResult {
 }
 
 async function syncProjects() {
-    const client = new http.HttpClient('project-sync-action');
+    const ignoreCerts = core.getBooleanInput('ignore_certs');
+    
+    const requestOptions: ifm.RequestOptions = {
+        ignoreSslError: ignoreCerts
+    };
+
+    if (ignoreCerts) {
+    core.info('Certificate validation disabled (ignore_certs=true)');
+    }
+
+    const client = new http.HttpClient('project-sync-action', [], requestOptions);
     try {
         const ahHost = core.getInput('ah_host', { required: true });
         const ahToken = core.getInput('ah_token', { required: true });
