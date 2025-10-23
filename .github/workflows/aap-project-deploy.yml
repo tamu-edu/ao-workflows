@@ -50,7 +50,7 @@ jobs:
           # Create local ansible.cfg with environment-specific hub token
           cat > ansible.cfg << 'EOF'
           [defaults]
-          collections_paths = ./.ansible_collections:~/.ansible/collections:/usr/share/ansible/collections
+          collections_path = ./.ansible_collections:~/.ansible/collections:/usr/share/ansible/collections
 
           [galaxy]
           server_list = published_repo, rh-certified_repo, community_repo
@@ -80,7 +80,7 @@ jobs:
           mkdir -p ./.ansible_collections
 
           if [ -f "installation/requirements.yml" ]; then
-            ansible-galaxy collection install -r installation/requirements.yml -p ./.ansible_collections
+            ansible-galaxy collection install --ignore-certs -r installation/requirements.yml -p ./.ansible_collections
           fi
 
       - name: Deploy to AAP
