@@ -25770,6 +25770,7 @@ function approveStandalone(client, baseUrl, headers, namespace, name, version, t
                 }
             }
             catch (error) {
+                core.debug(`Attempt ${attempts + 1} error: ${error}`);
                 core.info(`Attempt ${attempts + 1} failed, retrying in ${interval} seconds...`);
             }
             yield sleep(interval * 1000);
