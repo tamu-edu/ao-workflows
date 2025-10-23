@@ -42,7 +42,7 @@ jobs:
           OP_CONNECT_TOKEN: ${{ secrets.op_connect_token }}
           AAP_HOSTNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hostname
           AAP_USERNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/username
-          AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/token
+          AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
 
       - name: Activate Ansible environment
         run: |
