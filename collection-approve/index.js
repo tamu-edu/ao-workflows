@@ -25700,7 +25700,7 @@ const fs_1 = __importDefault(__nccwpck_require__(9896));
 const yaml_1 = __importDefault(__nccwpck_require__(8815));
 function approveCollection() {
     return __awaiter(this, void 0, void 0, function* () {
-        const ignoreCerts = core.getInput('ignore_certs') === 'true';
+        const ignoreCerts = core.getBooleanInput('ignore_certs');
         const requestOptions = {
             ignoreSslError: ignoreCerts
         };

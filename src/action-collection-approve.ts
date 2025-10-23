@@ -18,7 +18,7 @@ interface ApiResponse<T> {
 }
 
 async function approveCollection() {
-  const ignoreCerts = core.getInput('ignore_certs') === 'true';
+  const ignoreCerts = core.getBooleanInput('ignore_certs');
 
   const requestOptions: ifm.RequestOptions = {
     ignoreSslError: ignoreCerts
