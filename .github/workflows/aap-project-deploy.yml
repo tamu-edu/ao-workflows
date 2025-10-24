@@ -44,7 +44,7 @@ jobs:
           AAP_USERNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/username
           AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
           HUB_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hub_token
-          OP_SA_TOKEN: 'op://${{ inputs.op_vault }}/Service Account Auth Token: ao-automation-1Password-Read/credential'
+          SERVICE_ACCOUNT_TOKEN: "op://${{ inputs.op_vault }}/Service Account Auth Token: ao-automation-1Password-Read/credential"
 
       - name: Configure Ansible for workflow
         run: |
@@ -88,7 +88,7 @@ jobs:
         run: |
           source ~/.bashrc
           conda activate ansible
-          export OP_SERVICE_ACCOUNT_TOKEN="${{ steps.op-load-secret.outputs.OP_SA_TOKEN }}"
+          export OP_SERVICE_ACCOUNT_TOKEN="${{ steps.op-load-secret.outputs.SERVICE_ACCOUNT_TOKEN }}"
           export AAP_ENVIRONMENT="${{ inputs.aap_environment }}"
           ansible-playbook installation/dispatch_to_aap.yml \
             -e "aap_hostname=${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}" \
