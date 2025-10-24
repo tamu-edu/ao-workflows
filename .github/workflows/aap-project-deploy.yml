@@ -44,7 +44,7 @@ jobs:
           AAP_USERNAME: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/username
           AAP_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/controller_token
           HUB_TOKEN: op://${{ inputs.op_vault }}/AAP - service account - ${{ inputs.aap_environment }}/hub_token
-          SERVICE_ACCOUNT_TOKEN: "op://${{ inputs.op_vault }}/Service Account Auth Token: ao-automation-1Password-Read/credential"
+          SERVICE_ACCOUNT_TOKEN: "op://${{ inputs.op_vault }}/bmdxtigfzvw2ggzemd6c4aqj7q/credential"
 
       - name: Configure Ansible for workflow
         run: |
