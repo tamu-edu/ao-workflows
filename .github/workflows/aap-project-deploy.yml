@@ -95,13 +95,6 @@ jobs:
             -e "aap_username=${{ steps.op-load-secret.outputs.AAP_USERNAME }}" \
             -e "aap_token=${{ steps.op-load-secret.outputs.AAP_TOKEN }}"
 
-      - name: Sync AAP project repo
-        uses: tamu-edu/ao-workflows/project-sync@main
-        with:
-          ah_host: ${{ steps.op-load-secret.outputs.AAP_HOSTNAME }}
-          ah_token: ${{ steps.op-load-secret.outputs.AAP_TOKEN }}
-          project_name: ${{ inputs.project_name }}
-
       - name: Cleanup workflow artifacts
         if: always()
         run: |
