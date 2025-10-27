@@ -13,11 +13,10 @@ jobs:
     # Only run if:
     # 1. Comment is on a pull request
     # 2. Comment contains /merge
-    # 3. Commenter is repository OWNER
+    # 3. User permission checked in first step (admin required)
     if: |
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/merge') &&
-      github.event.comment.author_association == 'OWNER'
+      contains(github.event.comment.body, '/merge')
     runs-on: ubuntu-latest
     permissions:
       contents: write        # Required for pushing
@@ -30,7 +29,47 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           reactions: eyes
 
+      - name: Check if user has admin permission
+        id: check_permission
+        uses: actions/github-script@v8
+        with:
+          script: |
+            try {
+              const permission = await github.rest.repos.getCollaboratorPermissionLevel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                username: context.payload.comment.user.login
+              });
+
+              const hasAdmin = permission.data.permission === 'admin';
+              core.info(`User ${context.payload.comment.user.login} has permission: ${permission.data.permission}`);
+
+              if (!hasAdmin) {
+                core.setFailed(`User does not have admin permission (has: ${permission.data.permission})`);
+              }
+
+              return hasAdmin;
+            } catch (error) {
+              core.setFailed(`Failed to check permissions: ${error.message}`);
+              return false;
+            }
+
+      - name: Post permission denied comment
+        if: steps.check_permission.outputs.result == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: 'confused'
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ❌ **Permission denied**
+
+            Only users with **admin** permissions can use the `/merge` command.
+
+            Contact a repository administrator if you need access.
+
       - name: Get PR details
+        if: steps.check_permission.outputs.result == 'true'
         id: pr
         uses: actions/github-script@v8
         with:
@@ -55,6 +94,7 @@ jobs:
             };
 
       - name: Check if PR is from fork
+        if: steps.check_permission.outputs.result == 'true'
         id: check_fork
         uses: actions/github-script@v8
         with:
@@ -69,7 +109,7 @@ jobs:
             return isFork;
 
       - name: Post fork error comment
-        if: steps.check_fork.outputs.result == 'true'
+        if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'true'
         uses: peter-evans/create-or-update-comment@v4
         with:
           issue-number: ${{ github.event.issue.number }}
@@ -81,20 +121,20 @@ jobs:
             Please use the GitHub UI to merge this PR.
 
       - name: Checkout repository
-        if: steps.check_fork.outputs.result == 'false'
+        if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
-        if: steps.check_fork.outputs.result == 'false'
+        if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Perform fast-forward merge
-        if: steps.check_fork.outputs.result == 'false'
+        if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
         id: merge
         run: |
           set -e
@@ -127,7 +167,7 @@ jobs:
           fi
 
       - name: Push merged branch
-        if: steps.check_fork.outputs.result == 'false' && steps.merge.outputs.merge_success == 'true'
+        if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false' && steps.merge.outputs.merge_success == 'true'
         id: push
         run: |
           PR_DATA='${{ steps.pr.outputs.result }}'
@@ -161,7 +201,7 @@ jobs:
       # Note: GitHub automatically closes PRs when the head branch is merged into base branch
 
       - name: Add negative reaction and post failure comment
-        if: failure() && steps.check_fork.outputs.result == 'false'
+        if: failure() && steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ github.event.comment.id }}
