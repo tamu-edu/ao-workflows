@@ -1,0 +1,188 @@
+---
+name: PR Slash Commands
+
+# Reusable workflow for handling slash commands on pull requests
+on:
+  workflow_call:
+  issue_comment:
+    types: [created]
+
+jobs:
+  merge-command:
+    name: Fast-Forward Merge via /merge
+    # Only run if:
+    # 1. Comment is on a pull request
+    # 2. Comment contains /merge
+    # 3. Commenter is repository OWNER
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/merge') &&
+      github.event.comment.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # Required for pushing
+      pull-requests: write   # Required for posting comments
+
+    steps:
+      - name: React to comment with eyes emoji
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: eyes
+
+      - name: Get PR details
+        id: pr
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            core.info(`PR #${pr.data.number}: ${pr.data.head.ref} → ${pr.data.base.ref}`);
+
+            return {
+              number: pr.data.number,
+              head_ref: pr.data.head.ref,
+              head_sha: pr.data.head.sha,
+              base_ref: pr.data.base.ref,
+              head_repo: pr.data.head.repo.full_name,
+              base_repo: pr.data.base.repo.full_name,
+              mergeable: pr.data.mergeable,
+              mergeable_state: pr.data.mergeable_state
+            };
+
+      - name: Check if PR is from fork
+        id: check_fork
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = ${{ steps.pr.outputs.result }};
+            const isFork = pr.head_repo !== pr.base_repo;
+
+            if (isFork) {
+              core.setFailed('❌ Cannot merge PRs from forks using /merge command. Please use GitHub UI.');
+            }
+
+            return isFork;
+
+      - name: Post fork error comment
+        if: steps.check_fork.outputs.result == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ❌ **Fast-forward merge failed**
+
+            Cannot merge PRs from forks using the `/merge` command for security reasons.
+
+            Please use the GitHub UI to merge this PR.
+
+      - name: Checkout repository
+        if: steps.check_fork.outputs.result == 'false'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        if: steps.check_fork.outputs.result == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Perform fast-forward merge
+        if: steps.check_fork.outputs.result == 'false'
+        id: merge
+        run: |
+          set -e
+
+          PR_DATA='${{ steps.pr.outputs.result }}'
+          HEAD_REF=$(echo "$PR_DATA" | jq -r '.head_ref')
+          BASE_REF=$(echo "$PR_DATA" | jq -r '.base_ref')
+          HEAD_SHA=$(echo "$PR_DATA" | jq -r '.head_sha')
+
+          echo "::notice::Attempting fast-forward merge of $HEAD_REF into $BASE_REF"
+
+          # Fetch all branches
+          git fetch origin "$BASE_REF"
+          git fetch origin "$HEAD_REF"
+
+          # Checkout base branch
+          git checkout "$BASE_REF"
+
+          # Ensure we're up to date with remote
+          git reset --hard "origin/$BASE_REF"
+
+          # Attempt fast-forward merge
+          if git merge --ff-only "$HEAD_SHA"; then
+            echo "merge_success=true" >> $GITHUB_OUTPUT
+            echo "::notice::✅ Fast-forward merge successful"
+          else
+            echo "merge_success=false" >> $GITHUB_OUTPUT
+            echo "::error::❌ Fast-forward merge failed - base branch has diverged"
+            exit 1
+          fi
+
+      - name: Push merged branch
+        if: steps.check_fork.outputs.result == 'false' && steps.merge.outputs.merge_success == 'true'
+        id: push
+        run: |
+          PR_DATA='${{ steps.pr.outputs.result }}'
+          BASE_REF=$(echo "$PR_DATA" | jq -r '.base_ref')
+
+          echo "::notice::Pushing to origin/$BASE_REF"
+
+          if git push origin "$BASE_REF"; then
+            echo "push_success=true" >> $GITHUB_OUTPUT
+            echo "::notice::✅ Successfully pushed to $BASE_REF"
+          else
+            echo "push_success=false" >> $GITHUB_OUTPUT
+            echo "::error::❌ Failed to push to $BASE_REF"
+            exit 1
+          fi
+
+      - name: Add rocket reaction and post success comment
+        if: steps.push.outputs.push_success == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: rocket
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ✅ **Fast-forward merge successful!**
+
+            Merged `${{ fromJSON(steps.pr.outputs.result).head_ref }}` into `${{ fromJSON(steps.pr.outputs.result).base_ref }}` via fast-forward merge.
+
+            Performed by: @${{ github.event.comment.user.login }}
+
+      # Note: GitHub automatically closes PRs when the head branch is merged into base branch
+
+      - name: Add negative reaction and post failure comment
+        if: failure() && steps.check_fork.outputs.result == 'false'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ github.event.comment.id }}
+          reactions: '-1'
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ❌ **Fast-forward merge failed**
+
+            Cannot fast-forward merge `${{ fromJSON(steps.pr.outputs.result).head_ref }}` into `${{ fromJSON(steps.pr.outputs.result).base_ref }}`.
+
+            **Possible reasons:**
+            - The base branch has diverged (new commits added after this PR was created)
+            - Merge conflicts exist
+
+            **To fix:**
+            1. Rebase your branch on the latest `${{ fromJSON(steps.pr.outputs.result).base_ref }}`:
+               ```bash
+               git checkout ${{ fromJSON(steps.pr.outputs.result).head_ref }}
+               git pull origin ${{ fromJSON(steps.pr.outputs.result).base_ref }} --rebase
+               git push --force-with-lease
+               ```
+            2. Or use the GitHub UI to merge with a merge commit
+
+            Then try `/merge` again.
