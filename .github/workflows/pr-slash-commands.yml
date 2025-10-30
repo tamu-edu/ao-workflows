@@ -4,8 +4,16 @@ name: PR Slash Commands
 # Reusable workflow for handling slash commands on pull requests
 on:
   workflow_call:
+    secrets:
+      op_connect_host:
+        description: "1Password Connect server URL"
+        required: true
+      op_connect_token:
+        description: "1Password Connect token"
+        required: true
   issue_comment:
     types: [created]
+    
 
 jobs:
   merge-command:
@@ -28,6 +36,14 @@ jobs:
         with:
           comment-id: ${{ github.event.comment.id }}
           reactions: eyes
+      
+      - name: Load secrets from 1Password
+        id: op-load-secret
+        uses: 1password/load-secrets-action@v3
+        env:
+          OP_CONNECT_HOST: ${{ secrets.op_connect_host }}
+          OP_CONNECT_TOKEN: ${{ secrets.op_connect_token }}
+          AO_GITHUB_TOKEN: op://AO-Infrastructure-General/ao-automation - github - write all repos/credential
 
       - name: Check if user has admin permission
         id: check_permission
@@ -125,13 +141,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.AO_GITHUB_TOKEN }}
 
       - name: Configure Git
         if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "ts-ao-automation"
+          git config user.email "ao-automation@tamu.edu"
 
       - name: Perform fast-forward merge
         if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
