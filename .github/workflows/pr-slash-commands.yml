@@ -141,7 +141,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.AO_GITHUB_TOKEN }}
+          token: ${{ steps.op-load-secret.outputs.AO_GITHUB_TOKEN }}
 
       - name: Configure Git
         if: steps.check_permission.outputs.result == 'true' && steps.check_fork.outputs.result == 'false'
